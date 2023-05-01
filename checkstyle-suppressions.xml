@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+     "-//Checkstyle//DTD SuppressionFilter Configuration 1.0//EN"
+     "https://checkstyle.org/dtds/suppressions_1_0.dtd">
+<suppressions>
+
+	<!-- disabled because the Ordered interface requires a getter marking the 
+		constant as magic. -->
+	<suppress checks="MagicNumber" files=".*[\\\/].*" />
+
+	<!-- nanonanoprocessor is to lowlevel -->
+	<suppress checks="VisibilityModifier" files=".*[\\\/].*" />
+	<suppress checks="NoWhitespaceAfter" files=".*[\\\/].*" />
+
+	<!-- eclipse-formatter does a whitespace after a line in javadoc -->
+	<suppress checks="RegexpSingleline" files=".*[\\\/].*" />
+
+	<!-- We need access to sun.security.x509 -->
+	<suppress checks="IllegalImport" files=".*[\\\/].*" />
+
+
+	<suppress checks="HiddenField" files=".*[\\\/].*" />
+
+	<!-- unknown -->
+	<suppress checks="JavadocPackage" files=".*[\\\/].*" />
+	<suppress checks="LineLength" files=".*[\\\/].*" />
+	<suppress checks="FileTabCharacter" files=".*[\\\/].*" />
+	<suppress checks="JavadocStyle" files=".*[\\\/].*" />
+
+
+	<!-- <suppress checks="NoWhitespaceAfter" files=".*[\\\/].*" /> -->
+	<suppress checks="MethodLength" files=".*[\\\/].*" />
+	<suppress checks="MissingJavadocMethod" files=".*[\\\/].*" />
+	<suppress checks="DesignForExtension" files=".*[\\\/].*" />
+
+	<suppress checks="JavadocMethod" files=".*[\\\/].*" />
+	<suppress checks="JavadocVariable" files=".*[\\\/].*" />
+	<suppress checks="InnerAssignment" files=".*[\\\/].*" />
+	<suppress checks="MultipleVariableDeclarations"
+		files=".*[\\\/].*" />
+	<suppress checks="JavadocType" files=".*[\\\/].*" />
+	<suppress checks="AvoidStarImport" files=".*[\\\/].*" />
+	<suppress checks="ParameterNumber" files=".*[\\\/].*" />
+</suppressions>
