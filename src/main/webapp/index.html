@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Please start at http://localhost:8080/web/index.html -->
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<title>OSM Tile Server (Spring-Boot)</title>
+	<meta name="description" content="A tile server for a OSM database PostGis">
+</head>
+<body>
+	<form action="/tile" method="get">
+		<input placeholder="Longitude" type="number" name="longitude">
+		<input placeholder="Latitude" type="number" name="latitude">
+		<input placeholder="Meter" type="number" name="meter">
+		<button>Send</button>
+	</form>
+</body>
+</html>
