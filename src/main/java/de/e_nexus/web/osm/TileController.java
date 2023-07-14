@@ -1,4 +1,4 @@
-/**
+/*
  *  _____         _         _           _      _____         _              _____ _ _         
  * |   __|___ ___|_|___ ___| |_ ___ ___| |_   |  |  |___ ___| |_ ___ ___   |_   _|_| |___ ___ 
  * |__   | . |  _| |   | . | . | . | . |  _|  |  |  | -_|  _|  _| . |  _|    | | | | | -_|_ -|
@@ -25,23 +25,24 @@
  */
 package de.e_nexus.web.osm;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
+import org.postgis.ComposedGeom;
+import org.postgis.Geometry;
+import org.postgis.MultiPolygon;
+import org.postgis.PGbox2d;
+import org.postgis.PGgeo;
+import org.postgis.PGgeometry;
+import org.postgis.Polygon;
+import org.springframework.boot.context.properties.BoundConfigurationProperties;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import de.e_nexus.web.osm.PostGisPolygon.DoublePoint2D;
 
 @RestController
 public class TileController {
@@ -70,9 +71,8 @@ public class TileController {
 		namedParameters.addValue("y", latitude);
 		namedParameters.addValue("dist", dist);
 		namedParameters.addValue("meter", meter);
-		PostGisGeometryReader polygonReader = new PostGisGeometryReader();
-		String bounding = t.queryForObject("""
-				SELECT (
+		PGbox2d box = t.queryForObject("""
+				SELECT Box2D(
 							ST_Transform(
 									ST_MakeEnvelope(
 										:x - :dist,
@@ -83,19 +83,14 @@ public class TileController {
 									),
 									3857
 								)
-							) as way
+							) as box
 						FROM
 							planet_osm_polygon
 						LIMIT 1
-					""", namedParameters, String.class);
-		PostGisPolygon bounds;
-		try {
-			bounds = polygonReader.readPolygon(new ByteArrayInputStream(bounding.getBytes(StandardCharsets.UTF_8)));
-		} catch (IOException e) {
-			throw new IOException("Could not read from '" + bounding.substring(0, 20) + "'", e);
-		}
+					""", namedParameters, PGbox2d.class);
+
 		SqlRowSet areas = t.queryForRowSet("""
-				SELECT ST_AsText(result.way) as way, result.name as name FROM
+				SELECT result.way as way, result.name as name FROM
 					(
 						SELECT
 							ST_CollectionExtract(
@@ -134,34 +129,21 @@ public class TileController {
 							)
 						) as result
 					WHERE NOT ST_IsEmpty(result.way) """, namedParameters);
-		DoublePoint2D distance = bounds.startBox();
 		String html = "<html><body>";
 
 		String divs = "";
 		int i = 0;
+		double x = 0, y = 0;
 		while (areas.next()) {
-			String way = areas.getString("way");
+			PGgeometry geo = (PGgeometry) areas.getObject("way");
+			Geometry way = geo.getGeometry();
 			String name = areas.getString("name");
-			if (name != null)
-				System.out.println(name);
-			if (polygonReader.polygonPrefixMatch(way)) {
-				PostGisPolygon p;
-				try {
-					p = polygonReader.readPolygon(new ByteArrayInputStream(way.getBytes(StandardCharsets.UTF_8)));
-				} catch (IOException e) {
-					System.out.println(way);
-					throw new IOException("Could not read from '" + way.substring(0, Math.min(20, way.length())) + "'",
-							e);
-				}
-				PostGisPolygon moved = new PostGisPolygon(p, -distance.x, -distance.y);
-				divs = createPolyHtml(bounds, divs, name, moved, ++i);
-			}
-			if (polygonReader.multipolygonPrefixMatch(way)) {
-				List<PostGisPolygon> polys = polygonReader
-						.readMultipolygon(new ByteArrayInputStream(way.getBytes(StandardCharsets.UTF_8)));
-				for (PostGisPolygon postGisPolygon : polys) {
-					PostGisPolygon moved = new PostGisPolygon(postGisPolygon, -distance.x, -distance.y);
-					divs = createPolyHtml(bounds, divs, name, moved, ++i);
+			if (way instanceof Polygon p) {
+				divs = createPolyHtml(p, divs, name, box, ++i);
+			} else if (way instanceof MultiPolygon polys) {
+				System.out.println("Multipolygon!");
+				for (Polygon postGisPolygon : polys.getPolygons()) {
+					divs = createPolyHtml(postGisPolygon, divs, name, box, ++i);
 				}
 			}
 		}
@@ -186,11 +168,37 @@ public class TileController {
 		return html;
 	}
 
-	private String createPolyHtml(PostGisPolygon bounds, String html, String name, PostGisPolygon moved, int index) {
+	private String createPolyHtml(Geometry polygon, String html, String name, PGbox2d box, int index) {
 		html += ("<div id=\"id" + index + "\" class=\"" + name
 				+ "\" style=\"transform: scaleY(-1);position:fixed;background: rgba(1,1,1,0.05); width:"
-				+ Math.floor(bounds.getWidth()) + "px; height:" + Math.floor(bounds.getHeight())
-				+ "px;clip-path: path('" + moved.toOuterCssClipPath(1f, 0) + "'\"></div>\n");
+				+ Math.floor(box.getURT().x - box.getLLB().x) + "px; height:"
+				+ Math.floor(box.getURT().y - box.getLLB().y) + "px;clip-path: path('"
+				+ generateCssPath(polygon, 1f, box) + "'\"></div>\n");
 		return html;
 	}
+
+	private String generateCssPath(Geometry polygon, float scale, PGbox2d box) {
+
+		String path = "";
+		for (int pointNr = 0; pointNr < polygon.numPoints(); pointNr++) {
+			var point = polygon.getPoint(pointNr);
+			if (path.isEmpty()) {
+				path += "M";
+			} else {
+				path += "L";
+			}
+			path += calc(point.x - box.getLLB().x, scale, 2);
+			path += " ";
+			path += calc(point.y - box.getLLB().y, scale, 2);
+		}
+		return path;
+	}
+
+	private Number calc(final double d, final float scale, final int decimalPlaces) {
+		double x = d * scale;
+		double num = decimalPlaces == 0 ? 1 : 10 ^ decimalPlaces;
+		Number v = Math.round(x * num) / num;
+		return v.doubleValue() == v.intValue() ? v.intValue() : v;
+	}
+
 }
