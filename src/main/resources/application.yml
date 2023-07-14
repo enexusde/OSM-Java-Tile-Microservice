@@ -1,10 +1,7 @@
-spring.datasource:
-        url: jdbc:postgresql://@dbhost@/osm
-        username: @dbuser@
-        driverClassName: org.postgresql.Driver
-        password: @dbpass@
-        
-        
-spring.data.jpa.repositories.bootstrap-mode: default
-spring.data.rest.basePath: /api
-spring.mvc.static-path-pattern: /web/**
+
+spring:
+  mvc.static-path-pattern: /web/**
+osm.jdbc.pool:
+  url: @osmdburl@
+  username: @osmdbuser@
+  password: @osmdbpass@

@@ -30,9 +30,11 @@ import javax.inject.Named;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -42,12 +44,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @SpringBootApplication
 @EnableAutoConfiguration
 @EnableAsync
-@EnableJpaRepositories(basePackages = "de.e_nexus.web.osm.jpa.repo")
 @ComponentScan("de.e_nexus.web.osm")
-@EntityScan("de.e_nexus.web.osm.jpa.entitiesx")
 @EnableWebMvc
-public class AppConfig implements WebMvcConfigurer {
-	protected AppConfig() {
+public class OSMAppConfig extends SpringBootServletInitializer implements WebMvcConfigurer {
+
+	protected OSMAppConfig() {
 	}
 
 	@Override
@@ -56,6 +57,12 @@ public class AppConfig implements WebMvcConfigurer {
 	}
 
 	public static void main(final String... args) {
-		SpringApplication.run(AppConfig.class, args);
+		SpringApplication.run(OSMAppConfig.class, args);
+	}
+
+	@Bean
+	@ConfigurationProperties("osm.jdbc.pool")
+	public DriverManagerDataSource jdbcConnectionPoolProperties() {
+		return new DriverManagerDataSource();
 	}
 }

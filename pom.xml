@@ -7,44 +7,30 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<description>
-		Start a local webserver to serve osm tiles. Start and visit http://localhost:8080/web/index.html
+		Start a local webserver to serve osm tiles. Start and visit
+		http://localhost:8080/web/index.html
 	</description>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.7.10</version>
-	</parent>
 	<properties>
 		<java.version>17</java.version>
+		<boot.version>2.7.10</boot.version>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<osmdbuser>osmdbuser</osmdbuser>
+		<osmdbpass>osmdbpass</osmdbpass>
+		<osmdburl>osmdbpass</osmdburl>
+		<defaultGoalCheck>package pmd:check spotbugs:check checkstyle:check</defaultGoalCheck>
+		<defaultGoals>clean ${defaultGoalCheck}
+			spring-boot:run</defaultGoals>
+		<pmd.printFailingErrors>true</pmd.printFailingErrors>
 	</properties>
 	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-rest</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate</groupId>
-			<artifactId>hibernate-envers</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-autoconfigure</artifactId>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>javax.inject</groupId>
@@ -55,18 +41,29 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>net.postgis</groupId>
+			<artifactId>postgis-jdbc</artifactId>
+			<version>2.5.1</version>
+		</dependency>
 	</dependencies>
 	<build>
-		<defaultGoal>clean pmd:check spotbugs:check checkstyle:check spring-boot:run</defaultGoal>
+		<defaultGoal>${defaultGoals}</defaultGoal>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<additionalProperties>
-						<dbhost>${dbhost}</dbhost>
-						<dbuser>${dbuser}</dbuser>
-						<dbpass>${dbpass}</dbpass>
+						<osmdburl>${osmdburl}</osmdburl>
+						<osmdbuser>${osmdbuser}</osmdbuser>
+						<osmdbpass>${osmdbpass}</osmdbpass>
 					</additionalProperties>
 				</configuration>
 			</plugin>
@@ -99,7 +96,8 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-checkstyle-plugin</artifactId>
 					<configuration>
-						<propertyExpansion>org.checkstyle.sun.suppressionfilter.config=${maven.multiModuleProjectDirectory}/checkstyle-suppressions.xml</propertyExpansion>
+						<propertyExpansion>
+							org.checkstyle.sun.suppressionfilter.config=${maven.multiModuleProjectDirectory}/checkstyle-suppressions.xml</propertyExpansion>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -122,14 +120,15 @@
 			</plugins>
 		</pluginManagement>
 	</build>
-	<repositories>
-		<repository>
-			<id>live</id>
-			<url>https://www.e-nexus.de/de.e_nexus.web.rm.war-1.0.0-SNAPSHOT</url>
-			<name>enexus</name>
-			<releases>
-				<updatePolicy>always</updatePolicy>
-			</releases>
-		</repository>
-	</repositories>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>${boot.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 </project>
